@@ -1,8 +1,53 @@
-# nemweb
+# nemweb-b00t-mcp
+
+> **🥾 _b00t_-enhanced fork** of [opennem/nemweb](https://github.com/opennem/nemweb) with agentic AI capabilities via [elasticdotventures/_b00t_](https://github.com/elasticdotventures/_b00t_) framework.
+
 This is a python3 package to directly download and process AEMO files from
 [www.nemweb.com.au](https://www.nemweb.com.au/). Main module within the package
 downloads the [nemweb](https://www.nemweb.com.au/) files and inserts the tables
 into a local [SQLite](https://www.sqlite.org/) database.
+
+## 🚀 What's New: _b00t_ Integration
+
+This fork adds **agentic AI capabilities** through the _b00t_ framework, enabling:
+
+- 🤖 **MCP Server**: AI agents can discover and use AEMO data tools
+- 🐝 **Multi-Agent Workflows**: Coordinate parallel data downloads via ACP
+- 📚 **Skills System**: `b00t learn nemweb` teaches agents AEMO domain knowledge
+- 🔒 **Access Control**: Role-based permissions for agent operations
+- 📊 **Monitoring**: Data freshness tracking and status reporting
+
+### For AI Agents
+
+```bash
+# Discover available datasets
+b00t mcp call nemweb nemweb_discover
+
+# Download dispatch SCADA data
+b00t mcp call nemweb nemweb_download \
+  --dataset dispatch_scada \
+  --start-date 20240101 \
+  --end-date 20240131
+
+# Query the data
+b00t mcp call nemweb nemweb_query \
+  --sql "SELECT AVG(SCADAVALUE) FROM DISPATCH_UNIT_SCADA WHERE DUID='AGLHAL'"
+```
+
+### Project Status
+
+📋 **Planning Phase**: Comprehensive project plan completed  
+🎯 **Next Step**: Implementation begins Week 1  
+⏱️ **Timeline**: 10 weeks to full _b00t_ conformance  
+
+**Documentation:**
+- [PROJECT_PLAN.md](./PROJECT_PLAN.md) - Complete 10-week implementation roadmap
+- [B00T_INTEGRATION_GUIDE.md](./B00T_INTEGRATION_GUIDE.md) - Technical integration details
+- [SUMMARY.md](./SUMMARY.md) - Executive summary and overview
+
+---
+
+## Original nemweb Package
 
 This forms part of the backend of the
 [OpenNEM](https://opennem.org.au/#/all-regions) platform. The OpenNEM backend
