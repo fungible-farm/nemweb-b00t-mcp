@@ -106,6 +106,43 @@ The plan follows _b00t_ gospel principles:
 - casey/just (task automation)
 - derive_mcp (tool generation)
 
+### Sub-Agent Delegation Strategy
+
+**Implementation Acceleration via Parallel Agents:**
+
+The plan leverages **sub-agent delegation** to reduce contextual overhead and accelerate development:
+
+✅ **Captain Agent** (Orchestrator)
+- Coordinates overall project execution
+- Validates integration points
+- Manages dependencies and timelines
+- Focuses on architecture, not implementation
+
+✅ **Worker Agents** (Specialized Code Agents)
+- **Rust Agent**: MCP server, protocol handlers, tools
+- **Python Agent**: PyO3 bindings, nemweb wrapper
+- **Documentation Agent**: Skills, guides, API docs
+- **Testing Agent**: Unit tests, integration tests, benchmarks
+- **DevOps Agent**: CI/CD, containers, automation
+
+**Benefits:**
+- 🚀 **4-5x faster** than sequential implementation
+- 🧠 **Reduced context load** - each agent has <10% of total context
+- 🎯 **Specialized expertise** - agents leverage domain knowledge
+- ✅ **Natural checkpoints** - ACP step barriers ensure integration
+- ⏱️ **Shorter timeline** - 10 weeks → potentially 6-7 weeks with parallelization
+
+**Example Week 2:**
+```bash
+Captain creates mission: "Build 6 MCP tools"
+├─ Rust Agent: Implements tools 1-3 (discover, download, query)
+├─ Python Agent: Creates PyO3 bindings for nemweb library
+├─ Testing Agent: Writes integration tests for all tools
+└─ Docs Agent: Documents tool APIs and usage examples
+
+All sync at step barrier → Captain validates integration → Next phase
+```
+
 ## Next Steps for Implementation
 
 ### Immediate (Week 1)

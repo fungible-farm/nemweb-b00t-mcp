@@ -51,6 +51,98 @@ Based on analysis of elasticdotventures/_b00t_, the following components are req
 
 ## Detailed Implementation Plan
 
+### Sub-Agent Delegation Strategy
+
+To reduce contextual overhead and maximize efficiency, this implementation leverages **parallel sub-agent delegation** throughout all phases. Rather than having a single agent handle all implementation tasks sequentially, we employ specialized code agents (Claude, Codex, etc.) working in parallel on independent modules.
+
+#### Delegation Framework
+
+**Captain Agent (Orchestrator)**
+- Coordinates overall project execution
+- Assigns tasks to specialized sub-agents
+- Validates integration points
+- Manages dependencies and timelines
+- Focuses on architecture and high-level decisions
+
+**Worker Agents (Specialized Implementers)**
+- **Rust MCP Agent**: Implements MCP server, tools, protocol handlers
+- **Python Integration Agent**: Creates PyO3 bindings, wraps nemweb library
+- **Documentation Agent**: Writes skills, guides, API docs
+- **Testing Agent**: Creates unit tests, integration tests, benchmarks
+- **DevOps Agent**: Builds CI/CD, containers, deployment automation
+
+#### Parallel Execution Patterns
+
+**Week 1-2: Foundation & MCP Core**
+```
+Captain: Creates project structure, config templates
+  ├─ Worker 1 (Rust): Sets up Cargo project, MCP protocol scaffold
+  ├─ Worker 2 (Python): Creates PyO3 bindings, nemweb wrapper
+  ├─ Worker 3 (Docs): Writes architecture docs, agent guides
+  └─ Worker 4 (DevOps): Sets up devcontainer, justfile recipes
+
+All agents sync at step barrier, integrate components
+```
+
+**Week 3-4: Skills & Workflows**
+```
+Captain: Defines skill structure, workflow patterns
+  ├─ Worker 1 (Docs): Creates skill definitions (nemweb, aemo-data, dispatch, trading)
+  ├─ Worker 2 (Rust): Implements remaining MCP tools (update, status, schema)
+  ├─ Worker 3 (Python): Adds async support, progress reporting
+  └─ Worker 4 (Testing): Creates integration test suite
+
+Step barrier: Validate all components work together
+```
+
+**Week 5-6: Coordination & Environment**
+```
+Captain: Designs ACP integration patterns
+  ├─ Worker 1 (Rust): Implements ACP message handling, step barriers
+  ├─ Worker 2 (Docs): Documents multi-agent patterns, coordination examples
+  ├─ Worker 3 (DevOps): Builds Docker images, CI workflows
+  └─ Worker 4 (Testing): Creates multi-agent coordination tests
+
+Step barrier: End-to-end workflow validation
+```
+
+#### Benefits of Sub-Agent Delegation
+
+✅ **Reduced Context Load**: Each agent focuses on narrow domain, preserves memory  
+✅ **Parallel Execution**: 4-5x faster than sequential implementation  
+✅ **Specialized Expertise**: Agents leverage domain-specific knowledge (Rust, Python, docs, DevOps)  
+✅ **Clear Boundaries**: Minimal context sharing between independent modules  
+✅ **Natural Checkpoints**: Step barriers ensure integration points work  
+
+#### Communication & Coordination
+
+- **ACP Step Barriers**: Synchronize agents at phase boundaries
+- **Shared Artifacts**: Git repository, configuration files, API contracts
+- **Progress Reporting**: Each agent reports status via `b00t acp hive ready`
+- **Integration Testing**: Captain validates combined output at each barrier
+
+#### Example: Week 2 Parallel Implementation
+
+```bash
+# Captain creates mission for MCP server implementation
+b00t acp hive create mcp-server 3 "Implement 6 MCP tools" captain
+
+# Worker 1: Rust agent implements discover, download, query tools
+# Worker 2: Python agent creates nemweb wrapper and PyO3 bindings  
+# Worker 3: Testing agent writes tool integration tests
+
+# Each worker reports completion
+b00t acp hive ready mcp-server 1  # Tools implemented
+b00t acp hive sync mcp-server 1   # Wait for all workers
+
+# Captain validates integration
+b00t mcp call nemweb nemweb_discover  # Test tool discovery
+b00t mcp call nemweb nemweb_download --dataset dispatch_scada --start-date 20240101 --end-date 20240102
+
+# If validation passes, advance to next phase
+b00t acp hive ready mcp-server 2
+```
+
 ### Phase 1: Foundation & Structure (Week 1)
 
 #### 1.1 Directory Structure Setup
@@ -591,10 +683,47 @@ jobs:
 
 ## Resource Requirements
 
-### Personnel
-- 1 Senior Engineer (Rust + Python expertise)
-- 1 DevOps Engineer (part-time for CI/CD)
-- 1 Technical Writer (part-time for documentation)
+### Personnel (Sub-Agent Delegation Model)
+
+**Captain Agent (Primary Orchestrator)**
+- 1 Senior Architect/Tech Lead
+- Coordinates sub-agents across all phases
+- Validates integration points
+- Manages timelines and dependencies
+- Reduced context load: focuses on high-level coordination vs. implementation details
+
+**Worker Agents (Specialized Code Agents)**
+- 1 Rust Specialist Agent (Claude/Codex specialized for Rust)
+  - MCP server implementation
+  - Protocol handlers and tool implementations
+  - Performance optimization
+  
+- 1 Python Integration Agent (Claude/Codex specialized for Python)
+  - PyO3 bindings
+  - nemweb library wrapper
+  - Async support and progress reporting
+  
+- 1 Documentation Agent (Claude/Codex specialized for technical writing)
+  - Skills documentation
+  - API references
+  - Agent operation guides
+  
+- 1 Testing & QA Agent (Claude/Codex specialized for testing)
+  - Unit tests, integration tests
+  - Performance benchmarks
+  - Security testing
+  
+- 1 DevOps Agent (part-time, Claude/Codex specialized for infrastructure)
+  - CI/CD pipelines
+  - Container builds
+  - Deployment automation
+
+**Benefits of Sub-Agent Model:**
+- ✅ **4-5x faster execution** through parallelization
+- ✅ **Lower cognitive overhead** - each agent has narrow, specialized context
+- ✅ **Better quality** - agents leverage domain-specific expertise
+- ✅ **Natural checkpoints** - ACP step barriers ensure integration
+- ✅ **Reduced timeline** - 10 weeks → potentially 6-7 weeks with parallel execution
 
 ### Infrastructure
 - GitHub Actions minutes for CI/CD

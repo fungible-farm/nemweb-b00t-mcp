@@ -323,6 +323,92 @@ Located: `skills/nemweb/trading.md`
 
 ## Multi-Agent Coordination Patterns
 
+### Pattern 0: Sub-Agent Delegation for Implementation
+
+**Scenario**: Captain agent delegates specialized implementation tasks to parallel worker agents to reduce contextual overhead and accelerate development.
+
+**Use Case**: Implementing the nemweb MCP server with multiple specialized code agents working in parallel.
+
+```bash
+# Captain creates implementation mission with 4 specialized workers
+b00t acp hive create nemweb-implementation 4 "Build MCP server, skills, tests, DevOps" captain
+
+# Worker 1: Rust specialist implements MCP server
+b00t acp hive join nemweb-implementation rust-agent
+# Rust agent context: "You are a Rust expert. Implement MCP server with 6 tools."
+# Tools: nemweb_discover, nemweb_download, nemweb_query, nemweb_update, nemweb_status, nemweb_schema
+# Rust agent works independently on b00t-mcp-nemweb/ directory
+b00t acp hive ready nemweb-implementation 1
+
+# Worker 2: Python specialist creates PyO3 bindings
+b00t acp hive join nemweb-implementation python-agent
+# Python agent context: "You are a Python/PyO3 expert. Create bindings to nemweb library."
+# Creates wrapper module, async support, progress reporting
+b00t acp hive ready nemweb-implementation 1
+
+# Worker 3: Documentation specialist writes skills and guides
+b00t acp hive join nemweb-implementation docs-agent
+# Docs agent context: "You are a technical writer. Create 4 skill definitions."
+# skills/nemweb/: README-nemweb.md, aemo-data.md, dispatch.md, trading.md
+b00t acp hive ready nemweb-implementation 1
+
+# Worker 4: DevOps specialist sets up CI/CD
+b00t acp hive join nemweb-implementation devops-agent
+# DevOps agent context: "You are a DevOps expert. Create CI/CD, containers, justfile."
+# GitHub Actions workflows, Dockerfile, docker-compose.yml, justfile
+b00t acp hive ready nemweb-implementation 1
+
+# Captain waits for all workers to complete step 1
+b00t acp hive sync nemweb-implementation 1
+
+# Step 2: Integration validation
+# Captain validates that all components work together
+b00t mcp call nemweb nemweb_discover  # Test Rust MCP server
+b00t learn nemweb                     # Test skill system
+just test                             # Test CI/CD automation
+
+# All workers report integration success
+b00t acp hive ready nemweb-implementation 2
+b00t acp hive sync nemweb-implementation 2
+
+# Mission complete - 4x faster than sequential implementation!
+```
+
+**Benefits:**
+- ✅ **Reduced Context**: Each agent has <10% of total context
+- ✅ **Parallel Execution**: 4x-5x faster than sequential
+- ✅ **Specialized Expertise**: Agents use domain-specific knowledge
+- ✅ **Natural Boundaries**: Clear module separation minimizes integration issues
+- ✅ **Checkpoints**: Step barriers ensure compatibility
+
+**Captain Agent Focus:**
+```bash
+# Captain doesn't implement - orchestrates!
+# Week 1: Assign foundation tasks to workers
+# Week 2: Validate integration, assign next phase
+# Week 3: Review worker outputs, coordinate dependencies
+# Captain maintains high-level context, not implementation details
+```
+
+**Worker Agent Context Isolation:**
+```
+Rust Agent:
+  Context: MCP protocol, derive_mcp, tokio, PyO3 FFI
+  Scope: b00t-mcp-nemweb/ directory only
+  
+Python Agent:
+  Context: PyO3, nemweb library, async patterns
+  Scope: Python wrapper module only
+  
+Docs Agent:
+  Context: _b00t_ skill format, AEMO domain knowledge
+  Scope: skills/, docs/ directories only
+  
+DevOps Agent:
+  Context: GitHub Actions, Docker, just
+  Scope: .github/, Dockerfile, justfile only
+```
+
 ### Pattern 1: Parallel Dataset Download
 
 **Scenario**: Download multiple datasets for the same time period
