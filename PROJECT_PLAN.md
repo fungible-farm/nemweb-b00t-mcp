@@ -146,29 +146,42 @@ b00t acp hive ready mcp-server 2
 ### Phase 1: Foundation & Structure (Week 1)
 
 #### 1.1 Directory Structure Setup
-- [ ] Create `b00t-mcp-nemweb/` directory for MCP server
+- [ ] Initialize project with **uv**: `uv init`
+- [ ] Create `src/nemweb_mcp/` for MCP server (Python)
 - [ ] Create `skills/nemweb/` for skill definitions
 - [ ] Create `docs/b00t/` for _b00t_-specific documentation
 - [ ] Add `.devcontainer/` for consistent development environment
 - [ ] Create `templates/` for workflow templates
+- [ ] Create `superset/` for Apache Superset dashboards
 
 **Files to Create:**
 ```
 nemweb-b00t-mcp/
-├── b00t-mcp-nemweb/          # MCP server implementation
-│   ├── src/
-│   │   ├── main.rs           # MCP server entry point
-│   │   ├── tools/            # MCP tool implementations
-│   │   ├── nemweb_client.py  # Python binding to nemweb
-│   │   └── lib.rs
-│   ├── Cargo.toml
-│   └── README.md
+├── pyproject.toml            # uv project configuration
+├── uv.lock                   # uv lockfile
+├── src/
+│   └── nemweb_mcp/
+│       ├── __init__.py
+│       ├── server.py         # fastmcp server entry point
+│       ├── tools/
+│       │   ├── __init__.py
+│       │   ├── discover.py   # nemweb_discover tool
+│       │   ├── download.py   # nemweb_download tool
+│       │   ├── query.py      # nemweb_query tool
+│       │   ├── update.py     # nemweb_update tool
+│       │   ├── status.py     # nemweb_status tool
+│       │   └── schema.py     # nemweb_schema tool
+│       └── utils.py          # Helper functions
 ├── skills/
 │   └── nemweb/
 │       ├── README-nemweb.md  # Skill documentation
 │       ├── aemo-data.md      # AEMO data operations
 │       ├── dispatch.md       # Dispatch data workflows
 │       └── trading.md        # Trading data workflows
+├── superset/
+│   ├── dashboards/           # Superset dashboard exports
+│   ├── charts/               # Chart definitions
+│   └── setup.md              # Superset setup guide
 ├── templates/
 │   └── nemweb/
 │       ├── data-pipeline.yaml
@@ -229,12 +242,22 @@ query_per_minute = 60
 
 ### Phase 2: MCP Server Implementation (Week 2)
 
-#### 2.1 MCP Server Core
-- [ ] Set up Rust project structure for MCP server
-- [ ] Implement MCP protocol handlers (tools/list, tools/call)
-- [ ] Create Python interop layer for nemweb library
+> **Architecture Decision**: Using **fastmcp** (Python-native MCP framework) instead of Rust+PyO3 for simpler, more trivial implementation. _b00t_ is polyglot - Python is first-class.
+
+#### 2.1 MCP Server Core (fastmcp)
+- [ ] Set up Python project with **uv** package manager
+- [ ] Install fastmcp: `uv add fastmcp`
+- [ ] Create MCP server using fastmcp decorators
+- [ ] Leverage existing nemweb library directly (no FFI needed)
 - [ ] Add error handling and logging
 - [ ] Implement session management
+
+**Benefits of fastmcp approach:**
+- ✅ **Trivial integration**: Direct Python-to-Python, no language boundaries
+- ✅ **Native nemweb access**: Import and use nemweb library directly
+- ✅ **Faster development**: No Rust compilation, no PyO3 bindings
+- ✅ **Simpler maintenance**: Pure Python codebase
+- ✅ **Full _b00t_ polyglot support**: Python is a first-class citizen
 
 **Key MCP Tools to Implement:**
 1. **nemweb_discover** - List available datasets
@@ -244,35 +267,99 @@ query_per_minute = 60
 5. **nemweb_status** - Check data freshness
 6. **nemweb_schema** - Get table schema information
 
-#### 2.2 Tool Implementations
-- [ ] Implement `nemweb_discover` tool
-- [ ] Implement `nemweb_download` tool
-- [ ] Implement `nemweb_query` tool
-- [ ] Implement `nemweb_update` tool
-- [ ] Implement `nemweb_status` tool
-- [ ] Implement `nemweb_schema` tool
+#### 2.2 Tool Implementations (fastmcp)
+- [ ] Implement `nemweb_discover` tool using @mcp.tool() decorator
+- [ ] Implement `nemweb_download` tool with progress reporting
+- [ ] Implement `nemweb_query` tool with SQL validation
+- [ ] Implement `nemweb_update` tool with concurrent dataset updates
+- [ ] Implement `nemweb_status` tool with freshness metrics
+- [ ] Implement `nemweb_schema` tool with table introspection
 
-**Tool Specification Example:**
-```rust
-#[derive(derive_mcp::Tool)]
-struct NemwebDownload {
-    /// Dataset name (e.g., 'dispatch_scada', 'trading_is')
-    dataset: String,
-    /// Start date in YYYYMMDD format
-    start_date: String,
-    /// End date in YYYYMMDD format (optional)
-    end_date: Option<String>,
-    /// SQLite database name (optional, defaults to 'nemweb.db')
-    db_name: Option<String>,
-}
+**Tool Specification Example (fastmcp):**
+```python
+from fastmcp import FastMCP
+
+mcp = FastMCP("nemweb")
+
+@mcp.tool()
+def nemweb_download(
+    dataset: str,
+    start_date: str,
+    end_date: str | None = None,
+    db_name: str = "nemweb.db"
+) -> dict:
+    """
+    Download AEMO dataset for specified date range.
+    
+    Args:
+        dataset: Dataset name (e.g., 'dispatch_scada', 'trading_is')
+        start_date: Start date in YYYYMMDD format
+        end_date: End date in YYYYMMDD format (optional, defaults to today)
+        db_name: SQLite database name (optional)
+    
+    Returns:
+        Dict with status, records_inserted, time_range, database path
+    """
+    from nemweb import nemweb_current
+    
+    # Direct access to nemweb library - no FFI, no complexity!
+    handler = nemweb_current.CurrentFileHandler()
+    handler.update_data(
+        nemweb_current.DATASETS[dataset],
+        start_date=start_date,
+        end_date=end_date,
+        db_name=db_name,
+        print_progress=True
+    )
+    
+    return {
+        "status": "success",
+        "dataset": dataset,
+        "start_date": start_date,
+        "end_date": end_date or "today",
+        "database": f"~/.b00t/data/{db_name}"
+    }
 ```
 
-#### 2.3 Python Integration Layer
-- [ ] Create Python module `b00t_mcp_nemweb`
-- [ ] Implement PyO3 bindings for Rust<->Python interop
-- [ ] Wrap existing nemweb functions for MCP access
-- [ ] Add async support for long-running operations
-- [ ] Implement progress reporting
+#### 2.3 Project Setup with uv
+- [ ] Initialize project with `uv init`
+- [ ] Add dependencies: `uv add fastmcp nemweb pandas requests`
+- [ ] Create `pyproject.toml` with proper metadata
+- [ ] Set up virtual environment: `uv venv`
+- [ ] Configure development dependencies: `uv add --dev pytest black ruff`
+- [ ] Create MCP server entry point: `src/nemweb_mcp/server.py`
+
+**pyproject.toml structure:**
+```toml
+[project]
+name = "nemweb-mcp"
+version = "0.1.0"
+description = "AEMO nemweb MCP server for _b00t_ framework"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=0.1.0",
+    "pandas>=2.0.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+```
 
 ### Phase 3: Skill System Integration (Week 3)
 
@@ -550,7 +637,45 @@ jobs:
 - [ ] Build sample data pipelines
 - [ ] Create monitoring dashboards
 
-#### 10.2 Community Building
+#### 10.2 Data Visualization & Analytics
+- [ ] Set up **Apache Superset** for data visualization
+- [ ] Create Superset dashboards for AEMO data
+- [ ] Configure data sources (SQLite connection)
+- [ ] Build example visualizations:
+  - Dispatch SCADA time series
+  - Regional price heatmaps
+  - Generation unit performance
+  - Rooftop PV forecasts vs actuals
+- [ ] Document Superset setup in skills
+
+**Apache Superset Integration:**
+```bash
+# Install Superset via uv
+uv add apache-superset
+
+# Initialize Superset database
+superset db upgrade
+
+# Create admin user
+superset fab create-admin
+
+# Load example dashboards
+superset init
+
+# Connect to nemweb SQLite database
+# Dashboard: "AEMO Real-Time Dispatch"
+# - Chart 1: Dispatch prices by region (last 24h)
+# - Chart 2: Generation by fuel type
+# - Chart 3: Demand vs forecast
+```
+
+**MCP Chat Interface:**
+- MCP provides conversational interface for data queries
+- Agents can ask: "What was the average dispatch price in NSW yesterday?"
+- Superset provides visual exploration and dashboards
+- Both interfaces work together: chat for quick queries, dashboards for analysis
+
+#### 10.3 Community Building
 - [ ] Write blog post announcing _b00t_ integration
 - [ ] Create contribution guide
 - [ ] Set up discussions forum
@@ -564,19 +689,22 @@ jobs:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    AI Agent (Claude, etc.)                   │
+│                   - Chat Interface (MCP)                     │
+│                   - Conversational Queries                   │
 └────────────────────────┬────────────────────────────────────┘
                          │ MCP Protocol
 ┌────────────────────────▼────────────────────────────────────┐
 │                  b00t MCP Framework                          │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │  nemweb MCP Server (Rust)                            │   │
-│  │  - Tool Discovery                                     │   │
-│  │  - Tool Execution                                     │   │
+│  │  nemweb MCP Server (fastmcp - Python)                │   │
+│  │  - Tool Discovery (@mcp.tool decorators)             │   │
+│  │  - Tool Execution (direct Python calls)              │   │
 │  │  - ACL Enforcement                                    │   │
 │  │  - Session Management                                 │   │
+│  │  - Native nemweb integration (no FFI!)               │   │
 │  └─────────────────────┬────────────────────────────────┘   │
 └────────────────────────┼────────────────────────────────────┘
-                         │ PyO3 FFI
+                         │ Direct Python import
 ┌────────────────────────▼────────────────────────────────────┐
 │           Python nemweb Library (existing)                   │
 │  ┌──────────────────────────────────────────────────────┐   │
@@ -587,11 +715,20 @@ jobs:
 │  └─────────────────────┬────────────────────────────────┘   │
 └────────────────────────┼────────────────────────────────────┘
                          │
-┌────────────────────────▼────────────────────────────────────┐
-│                   External Services                          │
-│  - nemweb.com.au (AEMO data source)                         │
-│  - SQLite Database (local storage)                          │
-└─────────────────────────────────────────────────────────────┘
+         ┌───────────────┴───────────────┐
+         │                               │
+         ▼                               ▼
+┌──────────────────────┐    ┌──────────────────────────┐
+│  nemweb.com.au       │    │  SQLite Database         │
+│  (AEMO data source)  │    │  (local storage)         │
+└──────────────────────┘    └───────────┬──────────────┘
+                                        │
+                            ┌───────────▼──────────────┐
+                            │  Apache Superset         │
+                            │  - Dashboards            │
+                            │  - Visualizations        │
+                            │  - Analytics             │
+                            └──────────────────────────┘
 ```
 
 ### Data Flow
@@ -599,10 +736,18 @@ jobs:
 1. **Agent Request**: AI agent discovers nemweb capabilities via MCP
 2. **Tool Invocation**: Agent calls MCP tool (e.g., nemweb_download)
 3. **ACL Check**: b00t framework validates permissions
-4. **Execution**: Rust server calls Python nemweb library via PyO3
+4. **Execution**: fastmcp server calls nemweb library directly (same Python process)
 5. **Data Processing**: nemweb downloads and processes AEMO data
 6. **Storage**: Data stored in SQLite database
 7. **Response**: Results returned to agent via MCP protocol
+8. **Visualization**: Superset provides dashboards and analytics (optional)
+
+**Key Simplifications with fastmcp:**
+- ✅ No Rust compilation required
+- ✅ No PyO3 FFI complexity
+- ✅ Direct Python-to-Python calls (same process)
+- ✅ Faster development and iteration
+- ✅ Easier debugging (all Python stack traces)
 
 ## Success Criteria
 
@@ -652,34 +797,53 @@ jobs:
 
 ### External Dependencies
 - elasticdotventures/_b00t_ framework (latest stable)
-- Rust 1.82+ with cargo
+- **uv** - Modern Python package manager (required)
 - Python 3.12+
 - SQLite 3.35+
 - pandas, requests (existing dependencies)
 
-### New Dependencies
-- PyO3 for Rust<->Python interop
-- derive_mcp for MCP tool generation
-- tokio for async runtime
-- serde for serialization
-- casey/just for task automation
+### New Dependencies (Python - via uv)
+- **fastmcp** - Python-native MCP framework (primary)
+- **apache-superset** - Data visualization and analytics
+- pytest - Testing framework
+- black - Code formatting
+- ruff - Linting
+- casey/just - Task automation (optional, can use uv scripts)
+
+**Installation:**
+```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Initialize project
+uv init
+
+# Add core dependencies
+uv add fastmcp pandas requests
+
+# Add visualization
+uv add apache-superset
+
+# Add development dependencies
+uv add --dev pytest black ruff
+```
 
 ## Timeline Summary
 
 | Phase | Duration | Key Deliverables |
 |-------|----------|------------------|
-| 1. Foundation | Week 1 | Directory structure, config files, docs foundation |
-| 2. MCP Server | Week 2 | Working MCP server with 6 core tools |
+| 1. Foundation | Week 1 | Directory structure, config files, docs foundation, uv setup |
+| 2. MCP Server | Week 2 | fastmcp server with 6 core tools (Python-native) |
 | 3. Skills | Week 3 | Skill definitions, learn integration, LFMF setup |
-| 4. Workflows | Week 4 | Justfile, workflow templates |
+| 4. Workflows | Week 4 | Justfile/uv scripts, workflow templates |
 | 5. ACP | Week 5 | Multi-agent coordination support |
 | 6. DevEnv | Week 6 | DevContainer, Docker setup |
 | 7. Testing | Week 7 | Comprehensive test suite |
 | 8. CI/CD | Week 8 | Automated workflows |
 | 9. Docs | Week 9 | Complete documentation |
-| 10. Community | Week 10 | Integration examples, community setup |
+| 10. Community | Week 10 | Integration examples, Apache Superset dashboards |
 
-**Total Duration**: 10 weeks (2.5 months)
+**Total Duration**: 10 weeks (2.5 months) sequential / **6-7 weeks with sub-agent parallelization**
 
 ## Resource Requirements
 
@@ -693,15 +857,17 @@ jobs:
 - Reduced context load: focuses on high-level coordination vs. implementation details
 
 **Worker Agents (Specialized Code Agents)**
-- 1 Rust Specialist Agent (Claude/Codex specialized for Rust)
-  - MCP server implementation
-  - Protocol handlers and tool implementations
-  - Performance optimization
-  
-- 1 Python Integration Agent (Claude/Codex specialized for Python)
-  - PyO3 bindings
-  - nemweb library wrapper
+- 1 Python/fastmcp Specialist Agent (Claude/Codex specialized for Python)
+  - fastmcp MCP server implementation
+  - Tool decorators and implementations
+  - Direct nemweb library integration (no FFI)
   - Async support and progress reporting
+  
+- 1 Data Visualization Agent (Claude/Codex specialized for analytics)
+  - Apache Superset setup and configuration
+  - Dashboard creation
+  - SQLite data source integration
+  - Chart and visualization design
   
 - 1 Documentation Agent (Claude/Codex specialized for technical writing)
   - Skills documentation
@@ -709,21 +875,23 @@ jobs:
   - Agent operation guides
   
 - 1 Testing & QA Agent (Claude/Codex specialized for testing)
-  - Unit tests, integration tests
+  - Unit tests (pytest), integration tests
   - Performance benchmarks
   - Security testing
   
 - 1 DevOps Agent (part-time, Claude/Codex specialized for infrastructure)
   - CI/CD pipelines
   - Container builds
-  - Deployment automation
+  - uv-based deployment automation
 
-**Benefits of Sub-Agent Model:**
+**Benefits of Sub-Agent Model with fastmcp:**
 - ✅ **4-5x faster execution** through parallelization
+- ✅ **Simpler stack** - all Python, no Rust compilation or FFI
 - ✅ **Lower cognitive overhead** - each agent has narrow, specialized context
 - ✅ **Better quality** - agents leverage domain-specific expertise
 - ✅ **Natural checkpoints** - ACP step barriers ensure integration
 - ✅ **Reduced timeline** - 10 weeks → potentially 6-7 weeks with parallel execution
+- ✅ **Trivial integration** - Python agents working in Python (no language boundaries)
 
 ### Infrastructure
 - GitHub Actions minutes for CI/CD

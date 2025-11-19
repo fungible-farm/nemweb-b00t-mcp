@@ -94,17 +94,28 @@ The plan follows _b00t_ gospel principles:
 
 ### Technology Stack
 
+> **Architecture Decision**: Using **fastmcp** (Python-native) with **uv** package manager instead of Rust+PyO3. This is simpler, more trivial, and fully aligned with _b00t_'s polyglot philosophy.
+
 **Existing:**
 - Python 3.12+ (nemweb library)
 - SQLite (data storage)
 - pandas (data processing)
 
 **New Additions:**
-- Rust (MCP server implementation)
-- PyO3 (Python ↔ Rust interop)
-- tokio (async runtime)
-- casey/just (task automation)
-- derive_mcp (tool generation)
+- **fastmcp** - Python-native MCP framework (primary)
+- **uv** - Modern Python package manager (required)
+- **apache-superset** - Data visualization and dashboards
+- pytest (testing)
+- black, ruff (linting/formatting)
+- casey/just (task automation, optional)
+
+**Benefits of fastmcp approach:**
+- ✅ No Rust compilation required
+- ✅ No PyO3 FFI complexity
+- ✅ Direct Python-to-Python calls
+- ✅ Faster development iteration
+- ✅ Simpler debugging (all Python)
+- ✅ MCP chat interface built-in
 
 ### Sub-Agent Delegation Strategy
 
@@ -119,11 +130,11 @@ The plan leverages **sub-agent delegation** to reduce contextual overhead and ac
 - Focuses on architecture, not implementation
 
 ✅ **Worker Agents** (Specialized Code Agents)
-- **Rust Agent**: MCP server, protocol handlers, tools
-- **Python Agent**: PyO3 bindings, nemweb wrapper
+- **Python/fastmcp Agent**: MCP server, tool decorators, direct nemweb integration
+- **Data Visualization Agent**: Apache Superset dashboards, charts, analytics
 - **Documentation Agent**: Skills, guides, API docs
-- **Testing Agent**: Unit tests, integration tests, benchmarks
-- **DevOps Agent**: CI/CD, containers, automation
+- **Testing Agent**: Unit tests (pytest), integration tests, benchmarks
+- **DevOps Agent**: CI/CD, containers, uv-based automation
 
 **Benefits:**
 - 🚀 **4-5x faster** than sequential implementation
@@ -131,13 +142,14 @@ The plan leverages **sub-agent delegation** to reduce contextual overhead and ac
 - 🎯 **Specialized expertise** - agents leverage domain knowledge
 - ✅ **Natural checkpoints** - ACP step barriers ensure integration
 - ⏱️ **Shorter timeline** - 10 weeks → potentially 6-7 weeks with parallelization
+- 🐍 **All Python** - no language boundaries, trivial integration
 
 **Example Week 2:**
 ```bash
-Captain creates mission: "Build 6 MCP tools"
-├─ Rust Agent: Implements tools 1-3 (discover, download, query)
-├─ Python Agent: Creates PyO3 bindings for nemweb library
-├─ Testing Agent: Writes integration tests for all tools
+Captain creates mission: "Build 6 MCP tools + Superset dashboards"
+├─ Python Agent: Implements fastmcp tools with @mcp.tool decorators
+├─ Visualization Agent: Creates Superset dashboards for AEMO data
+├─ Testing Agent: Writes pytest integration tests
 └─ Docs Agent: Documents tool APIs and usage examples
 
 All sync at step barrier → Captain validates integration → Next phase

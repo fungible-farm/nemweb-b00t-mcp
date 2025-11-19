@@ -57,6 +57,8 @@ Using casey/just for:
 
 ## nemweb Integration with _b00t_
 
+> **Technology Stack**: This integration uses **fastmcp** (Python-native MCP framework) with **uv** package manager. The approach is simpler and more trivial than Rust+PyO3, as _b00t_ is polyglot - Python is a first-class citizen. Data visualization is provided via **Apache Superset**.
+
 ### Current nemweb Capabilities
 
 The original nemweb package provides:
@@ -73,10 +75,11 @@ After integration, agents will be able to:
 
 1. **Discover**: Find available AEMO datasets via MCP
 2. **Download**: Fetch data with simple tool calls
-3. **Query**: Run SQL queries against stored data
+3. **Query**: Run SQL queries against stored data (chat interface)
 4. **Monitor**: Check data freshness and status
 5. **Coordinate**: Multi-agent data pipeline orchestration
 6. **Learn**: Access AEMO domain knowledge via skills
+7. **Visualize**: Explore data via Apache Superset dashboards
 
 ## Agent Experience
 
@@ -655,25 +658,34 @@ platforms = ["linux/amd64", "linux/arm64"]
 ## justfile (Task Automation)
 
 ```just
-# nemweb-b00t-mcp justfile
+# nemweb-b00t-mcp justfile (or use uv scripts in pyproject.toml)
 
 # List available commands
 default:
     @just --list
 
-# Install dependencies
+# Install dependencies via uv
 install:
-    pip install -e .
-    cargo build --release -p b00t-mcp-nemweb
+    uv sync
+    uv pip install -e .
 
 # Run all tests
 test:
-    pytest nemweb/tests/ -v
-    cargo test -p b00t-mcp-nemweb
+    uv run pytest tests/ -v
 
 # Start MCP server
 serve:
-    b00t mcp serve nemweb
+    uv run python -m nemweb_mcp.server
+
+# Start Apache Superset
+superset-up:
+    uv run superset run -p 8088 --with-threads --reload --debugger
+
+# Initialize Superset (first time only)
+superset-init:
+    uv run superset db upgrade
+    uv run superset fab create-admin
+    uv run superset init
 
 # Download sample data for testing
 download-sample:
@@ -711,10 +723,33 @@ docker-build:
 docker-run:
     docker run --rm -it \
         -v ~/.b00t:/root/.b00t \
+        -p 8088:8088 \
         ghcr.io/fungible-farm/nemweb-b00t-mcp:latest
 
 # Run linting
 lint:
+    uv run ruff check src/
+    uv run black --check src/
+
+# Format code
+format:
+    uv run black src/
+    uv run ruff check --fix src/
+```
+
+### Alternative: uv scripts (in pyproject.toml)
+
+```toml
+[project.scripts]
+nemweb-mcp = "nemweb_mcp.server:main"
+
+[tool.uv.scripts]
+test = "pytest tests/ -v"
+lint = "ruff check src/"
+format = "black src/"
+serve = "python -m nemweb_mcp.server"
+superset-up = "superset run -p 8088 --with-threads"
+```
     black nemweb/
     ruff check nemweb/
     cargo clippy -p b00t-mcp-nemweb
