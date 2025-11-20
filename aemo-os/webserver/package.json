@@ -1,0 +1,13 @@
+{
+  "name": "aemo-os-webserver",
+  "version": "0.1.0",
+  "description": "AEMO OS Vue3 Webserver",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "vue": "^3.3.0",
+    "axios": "^1.6.0"
+  }
+}
