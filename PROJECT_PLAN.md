@@ -425,7 +425,7 @@ Common issues and solutions documented here...
 
 # Install dependencies and setup environment
 install:
-    pip install -e .
+    uv pip install -e .
     b00t-cli install-model nemweb-defaults
 
 # Run tests
@@ -514,7 +514,7 @@ async fn coordinate_data_download(mission_id: &str) {
     "ghcr.io/devcontainers/features/rust:1": {},
     "ghcr.io/devcontainers/features/node:1": {}
   },
-  "postCreateCommand": "pip install -e . && cargo build --release",
+  "postCreateCommand": "uv pip install -e . && cargo build --release",
   "customizations": {
     "vscode": {
       "extensions": [

@@ -12,7 +12,7 @@
 
 ```bash
 # Install dependencies
-pip install pandas requests
+uv add pandas requests
 
 # Run example
 export PYTHONPATH=$(pwd):$PYTHONPATH
@@ -217,7 +217,7 @@ tests/test_mcp_tools.py::test_download_tool_validation PASSED [100%]
 
 ## Next Steps
 
-1. **Install uv**: `pip install uv`
+1. **Install uv**: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 2. **Setup project**: `uv sync`
 3. **Run server**: `uv run python -m nemweb_mcp.server`
 4. **Add to _b00t_**: Configure in `b00t-mcp.json`
