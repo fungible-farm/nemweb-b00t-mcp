@@ -1,0 +1,16 @@
+{
+  "agents": {
+    "nemweb_agent": {
+      "skills": [
+        "nemweb",
+        "aemo-data"
+      ]
+    },
+    "visualization_agent": {
+      "skills": [
+        "superset",
+        "charts"
+      ]
+    }
+  }
+}

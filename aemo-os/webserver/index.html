@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEMO OS - National Electricity Market Analysis</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: #2c3e50; color: white; padding: 20px; margin-bottom: 30px; }
+        h1 { font-size: 24px; }
+        .subtitle { color: #95a5a6; margin-top: 5px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card h2 { font-size: 18px; margin-bottom: 15px; color: #2c3e50; }
+        .dataset { padding: 12px; border-left: 3px solid #3498db; background: #ecf0f1; margin-bottom: 10px; }
+        .dataset-name { font-weight: 600; color: #2c3e50; }
+        .dataset-desc { font-size: 14px; color: #7f8c8d; margin-top: 4px; }
+        .frequency { font-size: 12px; color: #3498db; margin-top: 4px; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #2980b9; }
+        .status { padding: 10px; background: #e8f8f5; border-left: 3px solid #27ae60; margin-bottom: 10px; }
+        .query-box { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; }
+        .result { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 10px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="container">
+                <h1>⚡ AEMO Operating System</h1>
+                <div class="subtitle">National Electricity Market Analysis Platform</div>
+            </div>
+        </header>
+        
+        <div class="container">
+            <div class="grid">
+                <!-- Datasets Card -->
+                <div class="card">
+                    <h2>📊 Available Datasets</h2>
+                    <div v-if="datasets.length === 0">
+                        <p>Loading datasets...</p>
+                        <button @click="discoverDatasets">Discover Datasets</button>
+                    </div>
+                    <div v-for="dataset in datasets" :key="dataset.name" class="dataset">
+                        <div class="dataset-name">{{ dataset.name }}</div>
+                        <div class="dataset-desc">{{ dataset.description }}</div>
+                        <div class="frequency">Updates: {{ dataset.update_frequency }}</div>
+                    </div>
+                </div>
+                
+                <!-- Database Status Card -->
+                <div class="card">
+                    <h2>💾 Database Status</h2>
+                    <button @click="checkStatus">Check Status</button>
+                    <div v-if="status" class="status" style="margin-top: 15px;">
+                        <div v-if="status.exists">
+                            <strong>Database Found</strong><br>
+                            Size: {{ status.database_size_mb }} MB<br>
+                            Datasets: {{ status.datasets ? status.datasets.length : 0 }}
+                        </div>
+                        <div v-else>
+                            <strong>No Database</strong><br>
+                            Download data to get started
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Query Interface Card -->
+                <div class="card" style="grid-column: span 2;">
+                    <h2>🔍 SQL Query Interface</h2>
+                    <textarea 
+                        v-model="sqlQuery" 
+                        class="query-box" 
+                        rows="4"
+                        placeholder="Enter SQL query (SELECT only)&#10;Example: SELECT * FROM DISPATCH_UNIT_SCADA LIMIT 10"
+                    ></textarea>
+                    <button @click="executeQuery" style="margin-top: 10px;">Execute Query</button>
+                    <div v-if="queryResult" class="result">
+                        <strong>Results:</strong><br>
+                        {{ queryResult }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    datasets: [],
+                    status: null,
+                    sqlQuery: 'SELECT * FROM DISPATCH_UNIT_SCADA LIMIT 10',
+                    queryResult: null,
+                    mcpEndpoint: 'http://localhost:3000/mcp'  // MCP server endpoint
+                }
+            },
+            mounted() {
+                this.discoverDatasets();
+                this.checkStatus();
+            },
+            methods: {
+                async discoverDatasets() {
+                    try {
+                        // Simulate MCP call to nemweb_discover
+                        // In production, this would call the actual MCP server
+                        this.datasets = [
+                            {
+                                name: 'dispatch_scada',
+                                description: 'Dispatch SCADA data (generation unit output)',
+                                update_frequency: '5min'
+                            },
+                            {
+                                name: 'trading_is',
+                                description: 'Trading Interval Summary (30-min prices and demand)',
+                                update_frequency: '30min'
+                            },
+                            {
+                                name: 'rooftopPV_actual',
+                                description: 'Rooftop PV actual generation',
+                                update_frequency: '30min'
+                            },
+                            {
+                                name: 'dispatch_is',
+                                description: 'Dispatch interval summary',
+                                update_frequency: '5min'
+                            }
+                        ];
+                    } catch (error) {
+                        console.error('Error discovering datasets:', error);
+                    }
+                },
+                async checkStatus() {
+                    try {
+                        // Simulate MCP call to nemweb_status
+                        this.status = {
+                            exists: false,
+                            message: 'Database not found. Download data using MCP tools.'
+                        };
+                    } catch (error) {
+                        console.error('Error checking status:', error);
+                    }
+                },
+                async executeQuery() {
+                    try {
+                        // Simulate MCP call to nemweb_query
+                        this.queryResult = 'Query would be executed via MCP server.\nConnect to MCP server to run actual queries.';
+                    } catch (error) {
+                        console.error('Error executing query:', error);
+                        this.queryResult = 'Error: ' + error.message;
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
